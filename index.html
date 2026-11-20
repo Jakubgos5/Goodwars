@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Symulator Boga 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#efe9f4;--surface:#fbf8fd;--ink:#2b2240;--mute:#6d6384;--accent:#a8641a;--line:#d6cbe3;--btn:#e4dbee;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1930;--surface:#292341;--ink:#ece6f6;--mute:#a79cc0;--accent:#e6ab5c;--line:#3d3560;--btn:#352d52;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1d1930;--surface:#292341;--ink:#ece6f6;--mute:#a79cc0;--accent:#e6ab5c;--line:#3d3560;--btn:#352d52;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 Figtree,system-ui,sans-serif}
+main{max-width:min(1280px,100%);margin:0 auto;padding:16px 14px 28px}
+h1{font:600 28px/1.1 Fraunces,Georgia,serif;margin:4px 0 2px}
+.sub{color:var(--accent);margin:0 0 2px;font-weight:600}
+.goal{color:var(--mute);margin:0 0 12px;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;margin-bottom:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.stat b{display:block;font:600 19px/1.1 Fraunces,Georgia,serif}
+.stat:first-child b{color:var(--accent)}
+.stat span{font-size:12px;color:var(--mute)}
+.world{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px}
+#box{height:clamp(280px,56vh,760px);border-radius:9px;overflow:hidden;background:#05030c}
+canvas{display:block;width:100%;height:100%;cursor:crosshair}
+.powers{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 6px;-webkit-overflow-scrolling:touch}
+.powers button{flex:0 0 auto;font:600 14px Figtree,system-ui,sans-serif;color:var(--ink);background:var(--btn);border:2px solid transparent;border-radius:10px;padding:8px 12px;text-align:left;cursor:pointer;min-width:96px}
+.powers button small{display:block;font-weight:400;color:var(--mute)}
+.powers button.on{border-color:var(--accent);background:var(--surface)}
+.powers button:disabled{opacity:.45}
+.powers button:focus-visible,.reset:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.desc{margin:4px 0 10px;font-size:14px;color:var(--mute);min-height:2.8em}
+.log{background:var(--surface);border-left:4px solid var(--accent);border-radius:6px;padding:10px 12px;font-style:italic;min-height:3em}
+.reset{margin-top:12px;font:600 14px Figtree,system-ui,sans-serif;background:none;color:var(--mute);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+  .dev{border-left-color:#c0202a;margin-top:8px}
+@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+.end{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));text-align:center;color:#fff;overflow:auto;animation:fin .7s}
+.e1{background:radial-gradient(circle at 50% 35%,#5a0710,#14020a 75%)}
+.e2{background:radial-gradient(circle at 50% 35%,#0b3a4a,#06121c 75%)}
+.end svg{width:min(68vw,290px);height:auto;overflow:visible}
+.end h2{font:600 30px/1.1 Fraunces,Georgia,serif;margin:0}
+.end p{max-width:420px;margin:0;color:#eadff0}
+.end .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.end button{font:600 15px Figtree,system-ui,sans-serif;padding:10px 16px;border-radius:10px;border:2px solid #fff;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
+.end button:focus-visible{outline:3px solid #ffd27a;outline-offset:2px}
+.ha{font:600 24px Fraunces,Georgia,serif;color:#ff8a7a;letter-spacing:.14em;animation:hop .45s infinite alternate}
+.e1 svg{animation:shk .3s infinite alternate;transform-origin:50% 80%}
+.jaw{animation:jaw .25s infinite alternate}
+.smoke{opacity:0;animation:smk 2.4s infinite ease-out}
+@keyframes fin{from{opacity:0}}
+@keyframes hop{to{transform:translateY(-6px)}}
+@keyframes shk{from{transform:rotate(-2.5deg)}to{transform:rotate(2.5deg)}}
+@keyframes jaw{to{transform:translateY(7px)}}
+@keyframes smk{0%{transform:translateY(0);opacity:.6}100%{transform:translateY(-34px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.end *,.end{animation:none!important}}
+.reset+.reset{margin-left:8px}
+</style>
+</head>
+<body>
+<main>
+<h1>Symulator Boga 3D</h1>
+<p class="sub" id="era"></p>
+<p class="goal" id="goal"></p>
+<div class="stats" id="st"></div>
+<div class="powers" id="tabs" role="group" aria-label="Widoki"></div>
+<div class="world"><div id="box"></div></div>
+<div class="powers" id="pw" role="group" aria-label="Moce"></div>
+<div class="desc" id="desc"></div>
+<div class="log" id="log" aria-live="polite"></div>
+<div class="log dev" id="dev" style="display:none"></div>
+<button class="reset" id="rs">Stwórz nowy wszechświat</button><button class="reset" id="q4" type="button">Grafika: standard</button>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id),rnd=Math.random,W=72,H=36,N=W*H,TAU=6.2832,D4=[[1,0],[-1,0],[0,1],[0,-1]];
+const box=$('box'),R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'}),el=R.domElement;box.appendChild(el);R.setClearColor(0x05030c);
+const S=new THREE.Scene(),cam=new THREE.PerspectiveCamera(55,1,.05,600);
+S.add(new THREE.AmbientLight(0x9aa0c8,.55));const dl=new THREE.DirectionalLight(0xffffff,1.05);dl.position.set(5,3,4);S.add(dl);R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);{const sc=dl.shadow.camera;sc.left=sc.bottom=-1.5;sc.right=sc.top=1.5;sc.near=3;sc.far=12}dl.shadow.bias=-.0006;dl.shadow.normalBias=.015;
+let era=0,moc=0,lg=0,sel='',bt=0,ex=0,pulse=0,dirty=0,temp=1500,grat=60,day=1,wp=0,gp=0,curIds='';
+let pe=3,view='c',sunOn=0,moon=0,belt=0,sol=[],uS=0,uE=0,elem=0,nv=[],pul=[],neb=0,com=[],kn=0,tech={},B=[],dv=12,over=0,hl,hlN=0,fin=0,finT=600,devDead=0,qs=0,qu=0,qd=0,pr=0,ne=0,hy=0,he=0,endShown=0,starMat,q4=1;
+let az=.6,ev=.35,dist=6,wd=6,mn=3,mx=14,P=[],fx=[],stars=[],pls=[],ty,fe,wt,nz,bio,gal=[],bh=[],bq=0;
+function say(s){$('log').textContent=s}
+function dsay(s){$('dev').textContent='Diabeł: '+s}
+const fmt=l=>{const y=Math.pow(10,l);return y<1e3?Math.round(y)+' lat':y<1e6?Math.round(y/1e3)+' tys. lat':y<1e9?Math.round(y/1e6)+' mln lat':(y/1e9).toFixed(1)+' mld lat'};
+const dir=(x,y,j=0)=>{const ph=(x+.5+j)/W*TAU,th=(y+.5)/H*Math.PI;return[-Math.cos(ph)*Math.sin(th),Math.cos(th),Math.sin(ph)*Math.sin(th)]};
+// tło gwiazd
+{const a=new Float32Array(9000);for(let i=0;i<9000;i+=3){const u=rnd()*TAU,z=rnd()*2-1,r=Math.sqrt(1-z*z);a[i]=180*r*Math.cos(u);a[i+1]=180*z;a[i+2]=180*r*Math.sin(u)}
+const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));starMat=new THREE.PointsMaterial({color:0xcfc8ee,size:1.3,sizeAttenuation:false,transparent:true,opacity:.6});S.add(new THREE.Points(g,starMat))}
+// kosmos: osobliwość, plazma, gwiazdy, planety
+const cosmos=new THREE.Group();S.add(cosmos);
+const core=new THREE.Mesh(new THREE.SphereGeometry(.5,64,40),new THREE.MeshBasicMaterial({color:0xfff1c0,transparent:true}));cosmos.add(core);
+const NP=9000,bp=new Float32Array(NP*3),pa=new Float32Array(NP*3),pc=new Float32Array(NP*3),cl=new THREE.Color();
+for(let i=0;i<NP;i++){const u=rnd()*TAU,z=rnd()*2-1,r=Math.sqrt(1-z*z),l=Math.cbrt(rnd());bp[i*3]=r*Math.cos(u)*l;bp[i*3+1]=z*l*.6;bp[i*3+2]=r*Math.sin(u)*l;cl.setHSL(.62-.55*l,.8,.55+.3*(1-l));pc.set([cl.r,cl.g,cl.b],i*3)}
+const pg0=new THREE.BufferGeometry();pg0.setAttribute('position',new THREE.BufferAttribute(pa,3));pg0.setAttribute('color',new THREE.BufferAttribute(pc,3));
+const pts=new THREE.Points(pg0,new THREE.PointsMaterial({size:.22,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));pts.visible=false;pts.frustumCulled=false;cosmos.add(pts);
+const sg=new THREE.SphereGeometry(.5,48,32);
+// planeta
+const geo=new THREE.SphereGeometry(1,W,H),P0=geo.attributes.position.array.slice();
+geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(P0.length),3));
+const planet=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true}));planet.visible=false;planet.receiveShadow=true;S.add(planet);
+const atm=new THREE.Mesh(new THREE.SphereGeometry(1.08,96,64),new THREE.MeshBasicMaterial({color:0x7fb0ff,transparent:true,opacity:.16,side:THREE.BackSide,depthWrite:false}));atm.visible=false;S.add(atm);
+const rd=new Float32Array(W*H).fill(1),UP=new THREE.Vector3(0,1,0),tv=new THREE.Vector3(),dum=new THREE.Object3D(),qn=new THREE.Quaternion(),qy=new THREE.Quaternion(),cc=new THREE.Color();
+const tR=(x,y)=>rd[Math.min(H-1,Math.max(0,Math.floor(y)))*W+(((Math.floor(x)%W)+W)%W)]||1;
+const mkI=(g,n,col)=>{const m=new THREE.InstancedMesh(g,new THREE.MeshLambertMaterial({color:col}),n);m.castShadow=m.receiveShadow=true;m.frustumCulled=false;m.count=0;return m};
+const pB=mkI(new THREE.CylinderGeometry(.007,.014,.05,8).translate(0,.025,0),300,0xffffff),pH=mkI(new THREE.SphereGeometry(.014,12,8).translate(0,.063,0),300,0xf2c9a0);
+const bW=mkI(new THREE.BoxGeometry(.06,.04,.06).translate(0,.02,0),64,0xffffff),bR=mkI(new THREE.ConeGeometry(.052,.04,4).rotateY(Math.PI/4).translate(0,.02,0),64,0xffffff);
+const pp=new THREE.Group(),bpts=new THREE.Group();pp.add(pB,pH);bpts.add(bW,bR);pp.visible=bpts.visible=false;S.add(pp,bpts);
+const devM=new THREE.Group();{const rm=new THREE.MeshBasicMaterial({color:0xd01818});devM.add(new THREE.Mesh(sg,rm));for(const sx of[-1,1]){const hn=new THREE.Mesh(new THREE.ConeGeometry(.15,.5,8),rm);hn.position.set(sx*.3,.5,0);hn.rotation.z=-sx*.4;devM.add(hn)}}devM.scale.setScalar(.12);devM.visible=false;S.add(devM);
+const solar=new THREE.Group();solar.visible=false;S.add(solar);
+const sunM=new THREE.Mesh(new THREE.SphereGeometry(1.4,96,64),new THREE.MeshBasicMaterial({color:0xffd24a}));sunM.visible=false;solar.add(sunM);
+const sl=new THREE.PointLight(0xfff0d0,0,80);solar.add(sl);const ug=new THREE.SphereGeometry(1,64,40);
+const SOL=[['Merkury',.25,0x9a9186,3,1.6],['Wenus',.35,0xe0b878,4.2,1.2],['Ziemia',.38,0x3f78c8,5.6,1],['Mars',.3,0xc0603a,7,.8],['Jowisz',.9,0xd6a878,10,.5],['Saturn',.8,0xe3cd90,12.8,.4],['Uran',.55,0x9cd8de,15.4,.3],['Neptun',.55,0x4a6ed8,17.8,.25]];
+function genPlanet(){
+ ty=new Uint8Array(N);fe=new Float32Array(N);wt=new Uint8Array(N);bio=new Uint8Array(N);hl=new Uint8Array(N);nz=new Float32Array(N);const h=[],s=[rnd()*9,rnd()*9,rnd()*9];
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,d=dir(x,y);nz[i]=rnd();
+  h[i]=Math.sin(2.3*d[0]+s[0])*Math.cos(2.1*d[1]+s[1])*.5+Math.sin(3.4*d[2]+s[2])*Math.sin(2.2*d[0]+s[1])*.4+Math.sin(5.1*d[1]+s[2])*Math.cos(4.7*d[2]+s[0])*.2+rnd()*.05}
+ const so=[...h].sort((a,b)=>a-b),a=so[Math.floor(N*.55)],m=so[Math.floor(N*.94)];
+ for(let i=0;i<N;i++)ty[i]=h[i]<a?0:h[i]>m?4:1;
+ temp=1500;paint();geo.computeBoundingSphere()
+}
+function paint(){const c=geo.attributes.color,p=geo.attributes.position,lava=pe==3&&temp>100;
+ for(let iy=0;iy<=H;iy++)for(let ix=0;ix<=W;ix++){const k=iy*(W+1)+ix,i=Math.min(iy,H-1)*W+ix%W,t=ty[i];let r,g,b,rad=1;
+  if(lava){const q=Math.min(1,(temp-100)/1400)*(.55+.45*nz[i]);r=.16+.84*q;g=.09+.3*q;b=.07}
+  else if(t==0){if(wt[i]){if(bio[i]){r=.12;g=.58;b=.5}else{r=.17;g=.4;b=.72}}else{r=.26;g=.2;b=.19}}
+  else if(t==1){r=.52;g=.44;b=.36;rad=1.02}
+  else if(t==2){const d=1-fe[i];r=.42+.3*d;g=.62+.05*d;b=.3+.14*d;rad=1.028}
+  else if(t==3){r=.18;g=.4;b=.2;rad=1.045}
+  else{r=.62;g=.6;b=.66;rad=1.07+.035*nz[i]}
+  if(hl[i]&&!lava){r=.4+.2*nz[i];g=.04;b=.04}
+  const sh=.9+.2*nz[i];c.setXYZ(k,r*sh,g*sh,b*sh);rd[i]=rad;p.setXYZ(k,P0[k*3]*rad,P0[k*3+1]*rad,P0[k*3+2]*rad)}
+ c.needsUpdate=p.needsUpdate=true;geo.computeVertexNormals()}
+// logika
+function near(x,y,r,fn){for(let j=Math.floor(y-r);j<=y+r;j++)for(let i=Math.floor(x-2*r);i<=x+2*r;i++){if(j<0||j>=H)continue;const dx=(i-x)/2,dy=j-y;if(dx*dx+dy*dy<=r*r)fn(((i%W)+W)%W,j)}}
+const d2=(a,b,x,y)=>{let dx=Math.abs(a-x);dx=Math.min(dx,W-dx)/2;return dx*dx+(b-y)*(b-y)};
+const obey=()=>{const sn=P.filter(p=>p.s).length;return P.length?grat*(1-sn/P.length):0};
+const walk=(x,y)=>{if(y<0||y>=H)return 0;const t=ty[y*W+x];return t>0&&t<4};
+const K={
+skup:{n:'Skup energię',c:0,d:'Dotknij punktu lub tego przycisku. Zbierz 25 mocy, by rozpocząć Wielki Wybuch.',fn(){moc+=1;pulse=1}},
+bang:{n:'Wielki Wybuch',c:25,d:'Rozrywa osobliwość i zaczyna czas, przestrzeń i materię.',fn(){setEra(1);bt=0;pts.visible=true}},
+forge:{n:'Kuźnia pierwiastków',c:20,d:'Przekuwa energię z powrotem w materię: +3 pierwiastki. Użyj, gdy ich zabraknie (maks. 30).',fn(){if(elem>=30){say('Masz już pełne zapasy pierwiastków.');return false}elem=Math.min(30,elem+3);say('Przekułeś energię w pierwiastki. Zapas: '+elem+'.')}},
+kwu:{n:'Kwark górny',c:1,on:()=>qs<3,d:'Skrapla z plazmy kwark górny (u). Dwa górne i jeden dolny dadzą proton.',fn(){if(qu>=20){say('Plazma nie pomieści więcej kwarków górnych. Zwiąż je w protony.');return false}qu++;say('Z plazmy kwarków wykrystalizował kwark górny.')}},
+kwd:{n:'Kwark dolny',c:1,on:()=>qs<3,d:'Skrapla z plazmy kwark dolny (d). Jeden górny i dwa dolne dadzą neutron.',fn(){if(qd>=20){say('Plazma nie pomieści więcej kwarków dolnych. Zwiąż je w neutrony.');return false}qd++;say('Z plazmy kwarków wykrystalizował kwark dolny.')}},
+pro:{n:'Proton (uud)',c:3,on:()=>qs<3,d:'Wiąże 2 kwarki górne i 1 dolny siłą silną w proton.',fn(){if(pr>=8){say('Dość protonów. Zrób z nich atomy.');return false}if(qu<2||qd<1){say('Proton to dwa kwarki górne i jeden dolny (uud).');return false}qu-=2;qd-=1;pr++;say('Gluony związały kwarki w proton.')}},
+neu:{n:'Neutron (udd)',c:3,on:()=>qs<3,d:'Wiąże 1 kwark górny i 2 dolne w neutron.',fn(){if(ne>=6){say('Dość neutronów. Zrób z nich hel.');return false}if(qu<1||qd<2){say('Neutron to jeden kwark górny i dwa dolne (udd).');return false}qu-=1;qd-=2;ne++;say('Powstał neutron.')}},
+hyd:{n:'Atom wodoru',c:4,on:()=>qs<3,d:'Proton chwyta elektron. Zużywa 1 proton.',fn(){if(pr<1){say('Brakuje protonu.');return false}pr--;hy++;say('Wszechświat ostygł na tyle, że powstał pierwszy atom wodoru.')}},
+hel:{n:'Jądro helu',c:8,on:()=>qs<3,d:'Fuzja 2 protonów i 2 neutronów w hel.',fn(){if(pr<2||ne<2){say('Hel to dwa protony i dwa neutrony.');return false}pr-=2;ne-=2;he++;say('Powstało jądro helu.')}},
+star:{n:'Zapal gwiazdę',c:8,on:()=>qs>=3,d:'Rodzi gwiazdę, która zasila Cię mocą. Potrzeba ich sześć.',fn(){if(stars.length>=14){say('Niebo jest już pełne gwiazd.');return false}
+ const m=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:[0xffd27a,0xaad0ff,0xff9a70,0xfff2c0][rnd()*4|0]})),a=rnd()*TAU,b=Math.acos(2*rnd()-1),r=5+rnd()*15;
+ m.position.set(r*Math.sin(b)*Math.cos(a),r*Math.cos(b)*.5,r*Math.sin(b)*Math.sin(a));m.scale.setScalar(.6+rnd()*.7);cosmos.add(m);stars.push(m);say('Narodziła się gwiazda. Ciemność ma pierwsze światło.')}},
+planet:{n:'Stwórz planetę',c:25,d:'Zlepia pył w planetę krążącą wokół losowej gwiazdy. Zużywa 2 pierwiastki.',fn(){if(!stars.length){say('Najpierw zapal gwiazdę.');return false}if(pls.length>=12){say('Gwiazdy nie udźwigną więcej planet (12).');return false}if(elem<2){say('Brakuje pierwiastków (2). Wywołaj supernową lub użyj Kuźni pierwiastków.');return false}elem-=2;
+ const s=stars[rnd()*stars.length|0],gas=rnd()<.4,m=new THREE.Mesh(new THREE.SphereGeometry(gas?.35:.2,40,28),new THREE.MeshLambertMaterial({color:gas?0xd9a066:[0x8a6a50,0x6f8fa8,0xb36a4a][rnd()*3|0]}));
+ cosmos.add(m);pls.push({m,s,r:1.4+rnd()*2.2+pls.length*.3,a:rnd()*TAU,v:.3+rnd()*.5});say('Z pyłu powstała planeta i krąży wokół swojej gwiazdy.')}},
+gal:{n:'Galaktyka',c:30,d:'Zwija miliardy gwiazd w wirującą spiralę. Daje stałą moc.',fn(){if(gal.length>=4){say('Wszechświat ma już dość galaktyk.');return false}
+ const g=new THREE.Group(),n=2600,a=new Float32Array(n*3),c=new Float32Array(n*3);
+ for(let i=0;i<n;i++){const r=Math.pow(rnd(),.7)*3.4,t=r*1.5+(i%2)*Math.PI+rnd()*.4;a[i*3]=Math.cos(t)*r;a[i*3+1]=(rnd()-.5)*.3;a[i*3+2]=Math.sin(t)*r;cl.setHSL(.1+.5*r/3.4,.7,.85-.35*r/3.4);c.set([cl.r,cl.g,cl.b],i*3)}
+ const g2=new THREE.BufferGeometry();g2.setAttribute('position',new THREE.BufferAttribute(a,3));g2.setAttribute('color',new THREE.BufferAttribute(c,3));
+ const q=new THREE.Points(g2,new THREE.PointsMaterial({size:.14,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));q.frustumCulled=false;g.add(q);
+ const ct=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0xffe9a8}));ct.scale.setScalar(.7);g.add(ct);
+ const r=16+rnd()*10,an=rnd()*TAU;g.position.set(Math.cos(an)*r,(rnd()-.5)*8,Math.sin(an)*r);g.rotation.set(rnd()*.8-.4,0,rnd()*.8-.4);cosmos.add(g);gal.push(g);say('Gwiazdy zwinęły się w spiralną galaktykę.')}},
+bh:{n:'Czarna dziura',c:40,d:'Daje dużo mocy, ale z czasem pożera gwiazdy i ich planety.',fn(){if(bh.length>=3){say('Trzy czarne dziury w zupełności wystarczą.');return false}
+ const g=new THREE.Group(),m=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0x000000})),ring=new THREE.Mesh(new THREE.TorusGeometry(1,.1,16,128),new THREE.MeshBasicMaterial({color:0xff9a40}));
+ ring.scale.setScalar(1.4);ring.rotation.x=1.3;g.add(m,ring);const r=6+rnd()*10,an=rnd()*TAU;g.position.set(Math.cos(an)*r,(rnd()-.5)*5,Math.sin(an)*r);cosmos.add(g);bh.push({g,ring});say('W kosmosie otworzyła się czarna dziura. Nawet światło nie ucieknie.')}},
+nova:{n:'Supernowa',c:25,on:()=>stars.length>=1,d:'Wybucha gwiazda, najlepiej czerwony olbrzym. Daje pierwiastki, a zostaje pulsar lub mgławica.',fn(){if(!stars.length){say('Brak gwiazd.');return false}
+ let i=stars.findIndex(t=>t.userData.g);const gi=i>=0;if(!gi)i=rnd()*stars.length|0;
+ const t=stars.splice(i,1)[0];cosmos.remove(t);pls=pls.filter(p=>{if(p.s==t){cosmos.remove(p.m);return false}return true});elem+=gi?7:3;
+ const f=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9}));f.position.copy(t.position);cosmos.add(f);nv.push({m:f,l:40});
+ if(rnd()<.4){const n=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0x9ad8ff}));n.scale.setScalar(.18);n.position.copy(t.position);cosmos.add(n);pul.push(n);say('Supernowa! Z gwiazdy został pulsar, który tyka jak zegar kosmosu.')}
+ else{const n=240,a=new Float32Array(n*3),c=new Float32Array(n*3);for(let k=0;k<n;k++){const u=rnd()*TAU,z=rnd()*2-1,r=Math.sqrt(1-z*z),l=Math.cbrt(rnd())*2.2;a.set([r*Math.cos(u)*l,z*l,r*Math.sin(u)*l],k*3);cl.setHSL(.78+rnd()*.15,.7,.6);c.set([cl.r,cl.g,cl.b],k*3)}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));
+  const q=new THREE.Points(g,new THREE.PointsMaterial({size:.25,vertexColors:true,transparent:true,opacity:.6,depthWrite:false,blending:THREE.AdditiveBlending}));q.position.copy(t.position);q.frustumCulled=false;cosmos.add(q);neb++;say('Supernowa! Resztki gwiazdy rozlały się w kolorową mgławicę.')}}},
+comet:{n:'Kometa',c:10,on:()=>sunOn&&sol.length>=1,d:'Wrzuca w orbitę kometę. Daje moc i niesie pierwiastki.',fn(){if(com.length>=6){say('W układzie jest już dość komet.');return false}
+ const m=new THREE.Mesh(ug,new THREE.MeshBasicMaterial({color:0xcfe8ff}));m.scale.setScalar(.12);solar.add(m);com.push({m,a:rnd()*TAU,A:12+rnd()*10,e:.6+rnd()*.25,rot:rnd()*TAU});elem+=1;say('Kometa przecina Układ Słoneczny i niesie lód oraz pierwiastki.')}},
+osada:{n:'Osada',c:15,tg:1,r:1,col:'#e0a050',on:()=>pe>=5,d:'Zakłada osadę: żywi ludzi w pobliżu, użyźnia pola i daje wiarę.',fn(x,y){if(!walk(x,y)){say('Osadę można założyć tylko na lądzie.');return false}if(B.some(b=>d2(b.x,b.y,x,y)<=1)||B.length>=40){say('Tu już coś stoi.');return false}B.push({x,y,t:0});near(x,y,2,(i,j)=>{const k=j*W+i;if(ty[k]==2||ty[k]==3)fe[k]=1});say('Powstała osada. Pola wokół są urodzajne.')}},
+temple:{n:'Świątynia',c:30,tg:1,r:1,col:'#fff0b0',on:()=>pe>=5,d:'Przekształca osadę w świątynię. Chroni okolicę przed Diabłem i daje dużo wiary.',fn(x,y){const b=B.find(b=>!b.t&&d2(b.x,b.y,x,y)<=2);if(!b){say('Świątynię wznosisz tylko w istniejącej osadzie.');return false}b.t=1;grat=Math.min(100,grat+6);say('Świątynia wzniosła się ku niebu. Diabeł ma tu pod górkę.')}},
+exo:{n:'Egzorcyzm',c:18,tg:1,r:3,col:'#9fd8ff',on:()=>pe>=5,d:'Uwalnia ludzi od pokusy i gasi bramy piekieł w pobliżu. Osłabia Diabła.',fn(x,y){let n=0,h=0;P.forEach(p=>{if(p.s&&d2(p.x,p.y,x,y)<=9){p.s=0;n++}});near(x,y,3,(i,j)=>{if(hl[j*W+i]){hl[j*W+i]=0;h++}});if(!n&&!h){say('Nie ma tu nic do oczyszczenia.');return false}dv=Math.max(0,dv-n*1.5-h*.8-4);grat=Math.min(100,grat+n);say('Uwolniono '+n+' dusz i zgaszono '+h+' pól piekła.')}},
+agri:{n:'Rolnictwo',c:0,k:20,on:()=>!tech.agri,d:'Wiedza o uprawach: pola szybciej się regenerują, rodzi się więcej dzieci.',fn(){tech.agri=1;say('Ludzie nauczyli się siać i zbierać plony.')}},
+writ:{n:'Pismo',c:0,k:35,on:()=>tech.agri&&!tech.writ,d:'Zapisana wiedza zwiększa wiarę i wiedzę o połowę.',fn(){tech.writ=1;say('Pojawiło się pismo. Ludzie spisują Twoje imię.')}},
+med:{n:'Medycyna',c:0,k:55,on:()=>tech.writ&&!tech.med,d:'Ludzie żyją dłużej i rzadziej umierają ze starości.',fn(){tech.med=1;say('Uzdrowiciele ratują życie.')}},
+indu:{n:'Przemysł',c:0,k:80,on:()=>tech.med&&!tech.indu,d:'Fabryki dają mnóstwo wiary, ale Diabeł zyskuje wpływy szybciej.',fn(){tech.indu=1;fin=1;finT=600;say('Dymią pierwsze fabryki. Ludzkość wchodzi w ostatni etap rozwoju. Rozpoczyna się ostatnia bitwa!');dsay('Zbudujecie broń? Ha! Za 600 dni zabiję Twojego Boga.')}},
+plas:{n:'Działo plazmowe',c:40,k:60,on:()=>tech.indu&&!tech.plas,d:'Wielkie działo plazmowe, ostatnie dzieło ludzkości. Zbuduj je, zanim Diabeł Cię zabije.',fn(){tech.plas=1;say('Ludzie zbudowali wielkie działo plazmowe. Czeka na modlitwę posłusznego ludu.');dsay('Zabawka. Nic mi nie zrobi.')}},
+fire:{n:'Wystrzel działo',c:60,on:()=>tech.plas,d:'Strzał zabija Diabła tylko wtedy, gdy lud jest posłuszny: posłuszeństwo min. 70%, 4 świątynie i 60 ludzi. Inaczej strzał chybi.',fn(){const ob=obey(),tem=B.filter(b=>b.t).length;
+ if(ob<70||tem<4||P.length<60){dv=Math.min(100,dv+15);grat=Math.max(0,grat-8);dsay('Ha! Twój lud nie klęczy, a działo bez ich modlitwy jest puste.');say('Strzał chybił. Posłuszeństwo '+Math.round(ob)+'% z 70%, świątynie '+tem+' z 4, lud '+P.length+' z 60.');return}
+ const t=devM.position.clone(),s0=t.clone().normalize().multiplyScalar(1.05),bm=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,1,10).rotateX(Math.PI/2).translate(0,0,.5),new THREE.MeshBasicMaterial({color:0x66f0ff,transparent:true,opacity:.9}));
+ bm.position.copy(s0);bm.scale.set(1,1,t.distanceTo(s0));bm.lookAt(t);S.add(bm);fx.push({m:bm,l:30});
+ const fl=new THREE.Mesh(new THREE.SphereGeometry(.3,16,12),new THREE.MeshBasicMaterial({color:0xaaf8ff,transparent:true,opacity:.9}));fl.position.copy(t);S.add(fl);fx.push({m:fl,l:45});
+ devDead=1;devM.visible=false;over=2;dv=0;say('Zwycięstwo! Posłuszny lud modli się, a wielkie działo plazmowe rozrywa Diabła na strzępy. Niebiańskie państwo jest wolne.');dsay('Niemożliwe... Zabity przez... ludzi...')}},
+sun:{n:'Słońce',c:20,on:()=>!sunOn,d:'Zapala centralną gwiazdę Układu Słonecznego. Zasila wszystko wokół.',fn(){sunOn=1;sunM.visible=true;sl.intensity=2.4;say('Zapaliło się Słońce.')}},
+sp:{n:'Następna planeta',c:12,on:()=>sol.length<8,d:'Tworzy kolejną planetę, od Merkurego do Neptuna. Ziemia wygląda tu tak jak Twój glob.',fn(){if(!sunOn){say('Najpierw zapal Słońce.');return false}
+ const d=SOL[sol.length],real=d[0]=='Ziemia',m=real?new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true})):new THREE.Mesh(ug,new THREE.MeshLambertMaterial({color:d[2]}));m.scale.setScalar(d[1]);
+ if(real){const at=new THREE.Mesh(atm.geometry,new THREE.MeshBasicMaterial({color:0x7fb0ff,transparent:true,opacity:.16,side:THREE.BackSide,depthWrite:false}));m.add(at);m.userData.atm=at;dirty=1}
+ if(d[0]=='Saturn'){const rg=new THREE.Mesh(new THREE.RingGeometry(1.4,2.2,128),new THREE.MeshBasicMaterial({color:0xcdb98a,side:THREE.DoubleSide,transparent:true,opacity:.7}));rg.rotation.x=-1.2;m.add(rg)}
+ const o=new THREE.Mesh(new THREE.RingGeometry(d[3]-.02,d[3]+.02,256),new THREE.MeshBasicMaterial({color:0x8890b0,side:THREE.DoubleSide,transparent:true,opacity:.25}));o.rotation.x=Math.PI/2;
+ solar.add(m,o);sol.push({m,r:d[3],a:rnd()*TAU,v:d[4]});say('Powstała planeta: '+d[0]+'.')}},
+moon:{n:'Księżyc',c:15,on:()=>sol.length>=3&&!moon,d:'Dodaje Ziemi księżyc, który wywołuje pływy.',fn(){const m=new THREE.Mesh(ug,new THREE.MeshLambertMaterial({color:0xbdbdc4}));m.scale.setScalar(.1);solar.add(m);moon={m,a:0};say('Ziemia zyskała Księżyc.')}},
+belt:{n:'Pas planetoid',c:20,on:()=>sol.length>=4&&!belt,d:'Rozsiewa skały między Marsem a Jowiszem.',fn(){const n=1800,a=new Float32Array(n*3);for(let i=0;i<n;i++){const t=rnd()*TAU,r=8.4+rnd()*.9;a[i*3]=Math.cos(t)*r;a[i*3+1]=(rnd()-.5)*.25;a[i*3+2]=Math.sin(t)*r}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));belt=new THREE.Points(g,new THREE.PointsMaterial({color:0xb5a898,size:.07}));belt.frustumCulled=false;solar.add(belt);say('Między Marsem a Jowiszem pojawił się pas planetoid.')}},
+ochl:{n:'Ochłodź',c:15,on:()=>temp>100,d:'Stygnie skorupa planety. Poniżej 100° woda może spaść na ziemię.',fn(){temp=Math.max(0,temp-300);say(temp>100?'Lawa zastyga w skorupę.':'Skorupa ostygła. Czas na deszcze.')}},
+rain:{n:'Deszcz',c:8,tg:1,r:4.5,col:'#5b8fd0',on:()=>temp<=100,d:'Napełnia oceany i nawadnia ziemię. Gdy pojawi się życie, zazielenia też skały.',fn(x,y){near(x,y,4.5,(i,j)=>{const k=j*W+i;if(ty[k]==0)wt[k]=1;else if(ty[k]>1&&ty[k]<4)fe[k]=1;else if(ty[k]==1&&pe>3&&rnd()<.4){ty[k]=2;fe[k]=.6}});grat=Math.min(100,grat+2);say('Spadł deszcz.')}},
+spark:{n:'Iskra życia',c:10,tg:1,r:2,col:'#7fe0c0',on:()=>pe==4,d:'Wrzuca pierwsze mikroby do oceanu. Rozmnażają się same i produkują tlen. Zużywa 3 pierwiastki.',fn(x,y){if(elem<3){say('Brakuje pierwiastków (3). Użyj Kuźni pierwiastków, supernowej lub komety.');return false}let n=0;near(x,y,2,(i,j)=>{const k=j*W+i;if(ty[k]==0&&wt[k]&&!bio[k]){bio[k]=1;n++}});if(!n){say('Tu nie ma wody bez życia. Wybierz ocean.');return false}elem-=3;say('W wodzie zadrgały pierwsze komórki.')}},
+green:{n:'Zasiej zieleń',c:6,tg:1,r:3,col:'#6fbf5a',on:()=>bq>=15||pe>4,d:'Mikroby dały tlen, więc rośliny porastają skały. Odblokowuje się, gdy życie zajmie 15% oceanów.',fn(x,y){near(x,y,3,(i,j)=>{const k=j*W+i;if(ty[k]==1&&rnd()<.6){ty[k]=2;fe[k]=.7}});say('Skały pokrył zielony meszek.')}},
+land:{n:'Ląd',c:14,tg:1,r:1.6,col:'#c9a35a',d:'Wynosi ląd z morza i zamienia skałę w trawę.',fn(x,y){near(x,y,1.6,(i,j)=>{const k=j*W+i;if(ty[k]==0){ty[k]=1;wt[k]=0}else if(ty[k]==1){ty[k]=2;fe[k]=.5}});say('Z fal wyłonił się nowy ląd.')}},
+forest:{n:'Las',c:8,tg:1,r:2,col:'#3f7a46',d:'Zamienia trawę w las. Lasy rosną wolniej, ale chronią ziemię.',fn(x,y){near(x,y,2,(i,j)=>{const k=j*W+i;if(ty[k]==2){ty[k]=3;fe[k]=.7}});say('Wyrósł las, szumi cicho.')}},
+life:{n:'Życie',c:20,tg:1,r:1.2,col:'#d86aa8',d:'Tworzy troje nowych ludzi w wybranym miejscu na lądzie.',fn(x,y){if(!walk(x,y)||P.length>240){say('Tu nie da się stanąć. Wybierz ląd.');return false}for(let i=0;i<3;i++)P.push({x,y,e:.9,a:0});say('Troje nowych ludzi otworzyło oczy.')}},
+bless:{n:'Błogosławieństwo',c:12,tg:1,r:3,col:'#f0d060',d:'Syci i uzdrawia ludzi w pobliżu. Wdzięczność rośnie.',fn(x,y){let n=0;P.forEach(p=>{if(d2(p.x,p.y,x,y)<=9){p.e=1;if(p.s){p.s=0;dv=Math.max(0,dv-.5)}n++}});if(!n){say('Nie było tu nikogo do pobłogosławienia.');return false}grat=Math.min(100,grat+4);say(n+' osób poczuło ciepło Twojej łaski.')}},
+smite:{n:'Piorun',c:6,tg:1,r:1.5,col:'#fff2a0',d:'Razi ludzi w jednym miejscu. Budzi strach, ale odbiera wdzięczność.',fn(x,y){let k=0;P=P.filter(p=>{const hit=d2(p.x,p.y,x,y)<=2.25;if(hit)k++;return !hit});near(x,y,1.5,(i,j)=>{if(ty[j*W+i]==3){ty[j*W+i]=2;fe[j*W+i]=.1}});grat=Math.max(0,grat-6*k);moc+=k*3;say(k?'Piorun poraził '+k+'. Lud szepcze Twoje imię ze strachem.':'Piorun uderzył w pustkę.')}},
+flood:{n:'Potop',c:15,tg:1,r:2,col:'#2f5f9a',d:'Zalewa ląd i topi wszystkich na nim. Surowa kara.',fn(x,y){let k=0;near(x,y,2,(i,j)=>{const q=j*W+i;if(ty[q]>0&&ty[q]<4){ty[q]=0;wt[q]=1}});P=P.filter(p=>{const ok=walk(p.x,p.y);if(!ok)k++;return ok});grat=Math.max(0,grat-8*k);say(k?'Woda zabrała '+k+' istnień.':'Woda wdarła się na pusty brzeg.')}}
+};
+const ERA=[
+['Era 0: Osobliwość','Cały byt tkwi w jednym punkcie. Skup energię i rozpocznij stworzenie.',['skup','bang']],
+['Era 1: Gorąca plazma','Najpierw kwarki, potem protony i neutrony, wreszcie atomy wodoru i helu. Z nich zapalisz pierwsze gwiazdy.',['kwu','kwd','pro','neu','hyd','hel','star']],
+['Era 2: Galaktyki i planety','Zwijaj galaktyki, otwieraj czarne dziury i twórz planety. Gdy będzie galaktyka i trzy planety, odblokujesz zakładkę Układ Słoneczny.',['star','planet','gal','bh','nova','forge']],
+['Ziemia 1: Młoda Ziemia','Planeta płonie. Ostudź skorupę, a potem napełnij oceany deszczem.',['ochl','rain']],
+['Ziemia 2: Narodziny życia','Wrzuć iskrę życia do oceanów. Gdy mikroby się rozmnożą i dadzą tlen, zazielenisz ląd.',['spark','rain','land','green','forge']],
+['Ziemia 3: Cywilizacja','Pojawia się lud. Moc zmienia się w wiarę. Rozwijaj osady i technologie aż do Przemysłu, zbuduj działo plazmowe i zabij Diabła. Jeśli się nie uda, Diabeł zabije Ciebie.',['rain','green','land','forest','life','bless','smite','flood','osada','temple','exo','agri','writ','med','indu','plas','fire']],
+['Układ Słoneczny','Zapal Słońce i twórz planety jedna po drugiej. Gdy powstanie Ziemia, odblokujesz jej powierzchnię. Potem jej wygląd odzwierciedla Twój glob.',['sun','sp','moon','belt','comet','forge']]];
+function setEra(n){if(n<3)era=n;else pe=n;
+ if(n==1){wd=44;mn=10;mx=80}
+ if(n==2)pts.material.opacity=.45;
+ if(n==4)dirty=1;
+ if(n==5){moc+=30;$('dev').style.display='block';dsay('Ludzie! Jak urocze. Każdy z nich ma swoją cenę.');const g=[];for(let i=0;i<N;i++)if(ty[i]==2)g.push(i);for(let i=0;i<6&&g.length;i++){const q=g[rnd()*g.length|0];P.push({x:q%W,y:q/W|0,e:.8,a:0})}}
+ sel='';say(ERA[n][1]);vis();ui()}
+function vis(){cosmos.visible=view=='c';solar.visible=view=='s';planet.visible=view=='e';atm.visible=view=='e'&&pe>=4;pp.visible=bpts.visible=view=='e'&&pe>=5;devM.visible=view=='e'&&pe>=5&&!devDead}
+function setView(v){if(v=='s'&&!uS||v=='e'&&!uE)return;view=v;vis();[wd,mn,mx]=v=='c'?(era?[44,10,80]:[6,3,14]):v=='s'?[22,6,45]:[3.4,1.7,7];sel='';curIds='';dirty=1;ui()}
+function use(p,x,y){if(over){say('Gra skończona. Stwórz nowy wszechświat.');return}if(moc<p.c||kn<(p.k||0)){say('Za mało zasobów na ten cud.');return}if(p.fn(x,y)===false)return;moc-=p.c;kn-=p.k||0;dirty=1;ui();return 1}
+const cur=()=>view=='e'?pe:view=='s'?6:era;
+function goal(){return[()=>'Cel: '+Math.floor(moc)+' z 25 mocy, by wywołać Wielki Wybuch',()=>qs<3?'Cel: wodór '+hy+' z 2 i hel '+he+' z 1 (kwarki, protony i neutrony, atomy)':'Cel: '+stars.length+' z 6 gwiazd',()=>uS?'Układ Słoneczny odblokowany. Galaktyki ('+gal.length+') i czarne dziury ('+bh.length+') dają moc.':'Cel: galaktyka '+gal.length+' z 1 i planety '+pls.length+' z 3, by odblokować Układ Słoneczny',()=>'Cel: oceany napełnione w '+wp+'% z 70%',()=>'Cel: życie w morzu '+bq+'% z 25% i zieleń '+gp+'% z 22% lądu',()=>over==2?'Zwycięstwo! Diabeł zginął od plazmy, a lud jest Ci posłuszny.':over==1?'Diabeł Cię zabił. Zacznij od nowa.':'Cel: posłuszeństwo '+Math.round(obey())+'% z 70%, świątynie '+B.filter(b=>b.t).length+' z 4, lud '+P.length+' z 60, potem wystrzel działo plazmowe'+(tech.plas?'':tech.indu?' (najpierw je zbuduj)':' (najpierw Przemysł)')+(fin?'. Zostało '+finT+' dni, inaczej Diabeł Cię zabije!':''),()=>uE?'Cel: '+sol.length+' z 8 planet':'Cel: Słońce i 3 planety (Merkury, Wenus, Ziemia), by odblokować Ziemię ('+sol.length+' z 3)'][cur()]()}
+const SVG1=`<svg viewBox="0 0 200 210" role="img" aria-label="Śmiejący się Diabeł"><defs><radialGradient id="g1"><stop offset="0" stop-color="#ff4a3a" stop-opacity=".55"/><stop offset="1" stop-color="#ff4a3a" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="105" r="104" fill="url(#g1)"/><path d="M52 62Q28 20 58 4Q54 38 78 52Z" fill="#3a0a0e"/><path d="M148 62Q172 20 142 4Q146 38 122 52Z" fill="#3a0a0e"/><ellipse cx="100" cy="100" rx="56" ry="60" fill="#c8141e"/><path d="M58 70L90 84M142 70L110 84" stroke="#1a0205" stroke-width="6" stroke-linecap="round"/><path d="M64 98Q77 80 91 98M109 98Q123 80 136 98" stroke="#1a0205" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M60 104q-7 13 0 15q7-2 0-15ZM140 104q-7 13 0 15q7-2 0-15Z" fill="#7fc8ff"/><g class="jaw"><path d="M56 120Q100 196 144 120Q100 130 56 120Z" fill="#2a0206"/><ellipse cx="100" cy="160" rx="21" ry="11" fill="#e0506a"/><path d="M66 122L74 138L82 125L90 140L98 126L106 140L114 125L122 138L130 123L134 122Z" fill="#fff"/></g><path d="M92 182Q100 204 108 182Z" fill="#3a0a0e"/></svg>`;
+const SVG2=`<svg viewBox="0 0 200 240" role="img" aria-label="Osłabiony Diabeł z raną wypaloną przez działo plazmowe"><defs><radialGradient id="g2"><stop offset="0" stop-color="#66f0ff" stop-opacity=".45"/><stop offset="1" stop-color="#66f0ff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="120" r="108" fill="url(#g2)"/><path d="M20 240Q28 176 68 170L132 170Q172 176 180 240Z" fill="#6a2229"/><path d="M52 66Q30 36 40 20Q58 40 78 54Z" fill="#2a0a0e"/><path d="M148 66Q160 52 164 44Q150 50 128 56Z" fill="#2a0a0e"/><ellipse cx="100" cy="102" rx="54" ry="58" fill="#8a2a32"/><ellipse cx="138" cy="118" rx="11" ry="8" fill="#241012"/><path d="M60 86L88 74M140 86L112 74" stroke="#1a0205" stroke-width="6" stroke-linecap="round"/><path d="M68 84l16 16M84 84l-16 16" stroke="#1a0205" stroke-width="5" stroke-linecap="round"/><ellipse cx="123" cy="96" rx="11" ry="8" fill="#e8c84a"/><ellipse cx="123" cy="99" rx="2.5" ry="4" fill="#1a0205"/><path d="M110 98h26V86h-26Z" fill="#8a2a32"/><path d="M80 140Q91 130 100 139Q109 148 120 137" stroke="#1a0205" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M102 142q4 20 13 13q2-9-5-13Z" fill="#c04a60"/><path d="M150 84q-5 10 0 12q5-2 0-12Z" fill="#7fc8ff"/><circle cx="100" cy="208" r="30" fill="#ff7a1a" opacity=".8"/><circle cx="100" cy="208" r="22" fill="#0a0305" stroke="#66f0ff" stroke-width="3"/><path d="M68 190l-9-9M134 192l10-9M100 176v-12M70 226l-10 8M132 226l11 7" stroke="#ff9a3a" stroke-width="3" stroke-linecap="round"/><circle class="smoke" cx="90" cy="186" r="8" fill="#bbb"/><circle class="smoke" style="animation-delay:.8s" cx="110" cy="182" r="9" fill="#bbb"/><circle class="smoke" style="animation-delay:1.6s" cx="100" cy="176" r="7" fill="#bbb"/></svg>`;
+function endScreen(){if(!over||endShown)return;endShown=1;
+ setTimeout(()=>{const v=over==2,d=document.createElement('div');d.className='end '+(v?'e2':'e1');d.setAttribute('role','dialog');d.setAttribute('aria-live','assertive');
+  d.innerHTML=(v?SVG2:SVG1)+(v?'':'<div class="ha" aria-hidden="true">HA HA HA!</div>')+'<h2>'+(v?'Diabeł pokonany':'Zabity przez Diabła')+'</h2><p>'+(v?'Wielkie działo plazmowe wypaliło mu w piersi dziurę na wylot. Osłabiony Diabeł chwieje się, a posłuszny lud klęka przed Tobą.':'Diabeł zabił Boga i śmieje się nad Twoim światem. Nie zdążyłeś pokonać go działem plazmowym.')+'</p><div class="row"><button type="button" data-a="n">Stwórz nowy wszechświat</button><button type="button" data-a="c">Zobacz świat</button></div>';
+  d.querySelector('[data-a=n]').onclick=()=>location.reload();d.querySelector('[data-a=c]').onclick=()=>d.remove();
+  document.body.appendChild(d);d.querySelector('button').focus()},over==2?1500:800)}
+function ui(){if(over)endScreen();
+ const c=cur(),ks=ERA[c][2].filter(k=>!K[k].on||K[k].on()),id=view+ks.join(),b=$('pw'),u=c==5?'wiary':'mocy';
+ if(id!=curIds){curIds=id;b.innerHTML='';ks.forEach(k=>{const p=K[k],e=document.createElement('button');e.dataset.k=k;e.innerHTML=p.n+'<small>'+((p.c?p.c+' '+u:'')+(p.k?(p.c?' + ':'')+p.k+' wiedzy':'')||'za darmo')+'</small>';e.onclick=()=>{sel=k;if(!p.tg)use(p);ui()};b.appendChild(e)})}
+ if(!ks.includes(sel))sel=ks.find(k=>K[k].tg)||ks[0]||'';
+ b.querySelectorAll('button').forEach(e=>{e.classList.toggle('on',e.dataset.k==sel);e.disabled=over||moc<K[e.dataset.k].c||kn<(K[e.dataset.k].k||0)});
+ $('tabs').querySelectorAll('button').forEach(e=>{const lk=e.dataset.v=='s'?!uS:e.dataset.v=='e'?!uE:0;e.classList.toggle('on',e.dataset.v==view);e.disabled=lk;e.textContent=e.dataset.n+(lk?' 🔒':'')});
+ const L=view=='c'?(era==1&&qs<3?[[qu,'Kwarki górne'],[qd,'Kwarki dolne'],[pr+' / '+ne,'Protony / neutrony'],[hy+' / '+he,'Wodór / hel'],[fmt(lg),'Wiek wszechświata']]:[[era?fmt(lg):'brak czasu','Wiek wszechświata'],[stars.length+' / '+pls.length,'Gwiazdy / planety'],[gal.length+' / '+bh.length,'Galaktyki / czarne dziury'],[elem,'Pierwiastki'],[pul.length+' / '+neb,'Pulsary / mgławice']]):view=='s'?[[sol.length+' / 8','Planety'],[sunOn?'płonie':'brak','Słońce'],[(moon?1:0)+(belt?1:0)+' / 2','Księżyc i pas'],[com.length,'Komety'],[elem,'Pierwiastki']]:c==3?[[Math.round(temp)+'°','Temperatura'],[wp+'%','Oceany']]:c==4?[[bq+'%','Życie w morzu'],[gp+'%','Zieleń'],[elem,'Pierwiastki']]:[[P.length,'Lud'],[Math.round(grat)+'%','Wdzięczność'],[Math.round(obey())+'%','Posłuszeństwo'],[Math.floor(kn),'Wiedza'],[Math.round(dv)+'%','Wpływy Diabła']].concat(fin?[[finT,'Dni do końca']]:[]);
+ $('st').innerHTML=[[Math.floor(moc),c==5?'Wiara':'Moc'],...L].map(a=>'<div class="stat"><b>'+a[0]+'</b><span>'+a[1]+'</span></div>').join('');
+ $('era').textContent=ERA[c][0];$('goal').textContent=goal();$('desc').textContent=K[sel]?K[sel].d:'Wszystko tutaj jest już zbudowane.'}
+const TD=['Twoi ludzie szepczą moje imię częściej niż Twoje.','Każda dusza ma swoją cenę.','Piękny świat. Szkoda, że spłonie.','Nie jesteś jedynym, który potrafi tworzyć.','Zobaczymy, komu będą się kłaniać.'];
+function devil(sn){
+ const tem=B.filter(b=>b.t).length;
+ dv=Math.max(0,Math.min(100,dv+.12+sn*.03+hlN*.01+(tech.indu?.08:0)-tem*.12));
+ if(dv>20&&P.length&&rnd()<dv/220){const p=P[rnd()*P.length|0];if(!p.s&&!B.some(b=>b.t&&d2(b.x,b.y,p.x,p.y)<=25)){p.s=1;dsay('Szepnąłem słówko jednemu z nich. Zobaczymy, co z tego wyrośnie.')}}
+ P.forEach(p=>{if(p.s&&rnd()<.05){const q=P[rnd()*P.length|0];if(!q.s&&d2(q.x,q.y,p.x,p.y)<=4)q.s=1}});
+ if(dv>35&&rnd()<dv/900)for(let t=0;t<40;t++){const i=rnd()*N|0;if(ty[i]>0&&ty[i]<4&&!hl[i]){hl[i]=1;fe[i]=0;dsay('Otworzyłem bramę piekieł. Ziemia pod nią zaczyna płonąć.');break}}
+ let n=0;for(let i=0;i<N;i++)if(hl[i]){n++;if(rnd()<.04){const d=D4[rnd()*4|0],x=(i%W+d[0]+W)%W,y=(i/W|0)+d[1];if(y>=0&&y<H){const q=y*W+x;if(ty[q]>0&&ty[q]<4&&!hl[q]){hl[q]=1;fe[q]=0;if(ty[q]>1)ty[q]=1}}}}
+ hlN=n;if(rnd()<.03)dsay(TD[rnd()*TD.length|0]);
+ if(fin){finT--;if(finT==300)dsay('Połowa czasu minęła. Czuję już Twój strach, Boże.');if(finT==100)dsay('Jeszcze sto dni i wbiję Ci pazury w serce.')}
+ if(dv>=100||(fin&&finT<=0)){over=1;say('Diabeł zabił Cię. Nie zdążyłeś pokonać go działem plazmowym. Koniec gry.');dsay('Bóg umarł. Mój. Cały mój.')}
+}
+function tick(){if(over){ui();return}
+ if(era==1)lg=Math.min(8.4,lg+.1);else if(era==2)lg=Math.min(9.65,lg+.03);else if(era>=3)lg=Math.min(10.14,lg+.002);
+ if(era==1)moc+=.8+.5*stars.length;else if(era==2){moc+=1+.5*stars.length+1.5*gal.length+bh.length;bh.forEach(b=>{if(stars.length>1&&rnd()<.12){const s=stars.splice(rnd()*stars.length|0,1)[0];cosmos.remove(s);pls=pls.filter(p=>{if(p.s==s){cosmos.remove(p.m);return false}return true});b.ring.scale.addScalar(.08);moc+=4;say('Czarna dziura pochłonęła gwiazdę wraz z planetami.')}})}if(uE&&pe<5)moc+=1.6;if(sunOn)moc+=1+.4*sol.length+(moon?1:0)+(belt?1:0);
+ if(era==1&&stars.length>=6)setEra(2);
+ stars.forEach(t=>{const u=t.userData;u.a=(u.a||0)+1;if(!u.g&&u.a>120){u.g=1;t.material.color.setHex(0xff5a3a);t.scale.multiplyScalar(1.8)}});
+ moc+=pul.length*1.2+neb+com.length*.6+hy*.2+he*.5;
+ if(era==1&&qs<3&&hy>=2&&he>=1){qs=3;say('Są atomy wodoru i helu. Grawitacja może teraz zapalić gwiazdy.')}
+ if(uE){let b=0,w=0,l=0,gr=0,bi=0;
+  for(let i=0;i<N;i++){const t=ty[i];if(t==0){b++;w+=wt[i];bi+=bio[i]}else if(t<4){l++;if(t>1)gr++}
+   if(t==2)fe[i]=Math.min(1,fe[i]+.03);else if(t==3)fe[i]=Math.min(1,fe[i]+.015)}
+  if(pe>=4)for(let n=0;n<60;n++){const i=rnd()*N|0;if(bio[i]){const d=D4[rnd()*4|0],x=(i%W+d[0]+W)%W,y=(i/W|0)+d[1];if(y>=0&&y<H&&ty[y*W+x]==0&&wt[y*W+x]&&rnd()<.5)bio[y*W+x]=1}}
+  bq=Math.round(bi/Math.max(1,w)*100);wp=Math.round(w/Math.max(1,b)*100);gp=Math.round(gr/Math.max(1,l)*100);dirty=1;
+  if(pe==3&&temp<=100&&wp>=70){setEra(4);say('Ocean się rozlał. W ciepłych wodach zaczyna się życie.')}
+  else if(pe==4&&bq>=25&&gp>=22)setEra(5);
+  if(pe>=5){day++;let hungry=0;
+   P.forEach(p=>{const d=D4[rnd()*4|0],nx=(p.x+d[0]+W)%W,ny=p.y+d[1];if(walk(nx,ny)){p.x=nx;p.y=ny}
+    p.e-=.07;p.a++;if(hl[p.y*W+p.x])p.e=-1;const k=p.y*W+p.x;if(fe[k]>.25&&p.e<.8){p.e+=.4;fe[k]-=tech.agri?.2:.4}if(p.e<.8&&B.some(b=>d2(b.x,b.y,p.x,p.y)<=(b.t?16:9)))p.e+=.12;if(p.e<.25)hungry++;if(p.a>150&&rnd()<(tech.med?.02:.05))p.e=-1});
+   const kids=[];P.forEach(p=>{if(p.e>.75&&!p.s&&rnd()<(tech.agri?.14:.1)&&P.length+kids.length<240){kids.push({x:p.x,y:p.y,e:.5,a:0});p.e-=.25}});
+   P=P.filter(p=>p.e>0).concat(kids);
+   grat+=(60-grat)*.01-hungry*.08;grat=Math.max(0,Math.min(100,grat));const sn=P.filter(p=>p.s).length;grat=Math.max(0,grat-sn*.05);kn+=P.length*.02*(tech.writ?1.5:1);moc+=(P.length-sn)*.06*(grat/100+.3)*(tech.writ?1.4:1)*(tech.indu?1.5:1)+.3+B.reduce((a,b)=>a+(b.t?2.5:1),0)*.5;devil(sn);
+   if(day%20==0){if(!P.length)say('Ziemia jest pusta. Ześlij życie, by znów ktoś Cię wielbił.');else if(hungry>P.length*.3)say('Lud głoduje i modli się o deszcz.');else if(grat>80)say('Ludzie śpiewają ku Twojej chwale.');else if(grat<25)say('W ludziach rośnie lęk i gorycz.');else if(P.length>60)say('Osady rosną. Dzieci pytają, kto stworzył niebo.')}}
+ }
+ if(!uS&&gal.length>=1&&pls.length>=3){uS=1;say('Galaktyka dojrzała. W jej ramieniu możesz stworzyć Układ Słoneczny.')}
+ if(!uE&&sunOn&&sol.length>=3){uE=1;say('Ziemia istnieje. Możesz zstąpić na jej powierzchnię i tchnąć w nią życie.')}
+ 
+ ui()}
+// sterowanie
+const ps=new Map(),rc=new THREE.Raycaster(),fg=new THREE.SphereGeometry(.1,32,20);let down=null;el.style.touchAction='none';
+const zoom=f=>{wd=Math.max(mn,Math.min(mx,wd*f))};
+el.onpointerdown=e=>{try{el.setPointerCapture(e.pointerId)}catch(_){}ps.set(e.pointerId,[e.clientX,e.clientY]);down=[0,0,ps.size>1?99:0]};
+el.onpointermove=e=>{const o=ps.get(e.pointerId);if(!o)return;const n=[e.clientX,e.clientY];
+ if(ps.size==2){const q=[...ps].find(a=>a[0]!=e.pointerId)[1];zoom(Math.hypot(o[0]-q[0],o[1]-q[1])/Math.max(1,Math.hypot(n[0]-q[0],n[1]-q[1])))}
+ else{az-=(n[0]-o[0])*.008;ev=Math.max(-1.3,Math.min(1.3,ev+(n[1]-o[1])*.006))}
+ if(down)down[2]+=Math.abs(n[0]-o[0])+Math.abs(n[1]-o[1]);ps.set(e.pointerId,n)};
+el.onpointerup=e=>{ps.delete(e.pointerId);if(down&&down[2]<6&&!ps.size)tap(e);down=null};
+el.onpointercancel=e=>{ps.delete(e.pointerId);down=null};
+el.onwheel=e=>{e.preventDefault();zoom(1+e.deltaY*.001)};
+function tap(e){
+ if(view=='c'&&era==0){K.skup.fn();ui();return}
+ if(view!='e'||!sel||!K[sel].tg)return;
+ const r=el.getBoundingClientRect();rc.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),cam);
+ const h=rc.intersectObject(planet)[0];if(!h)return;
+ const p=h.point.clone().normalize();let ph=Math.atan2(p.z,-p.x);if(ph<0)ph+=TAU;
+ const x=Math.min(W-1,Math.floor(ph/TAU*W)),y=Math.min(H-1,Math.floor(Math.acos(p.y)/Math.PI*H)),q=K[sel];
+ if(use(q,x,y)){const m=new THREE.Mesh(fg,new THREE.MeshBasicMaterial({color:q.col,transparent:true,opacity:.7}));m.position.copy(p).multiplyScalar(1.04);m.scale.setScalar(q.r*.4);S.add(m);fx.push({m,l:30})}}
+function fit(){const w=box.clientWidth,h=box.clientHeight;const gl=R.getContext(),lim=Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||4096,4096),pr=q4?Math.max(1,Math.min([0,2048,3840][q4]/w,lim/w,lim/h)):Math.min(devicePixelRatio||1,3);R.setPixelRatio(pr);R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+let last=performance.now();
+function frame(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;
+ az+=dt*.04;dist+=(wd-dist)*.06;
+ cam.position.set(dist*Math.cos(ev)*Math.sin(az),dist*Math.sin(ev),dist*Math.cos(ev)*Math.cos(az));cam.lookAt(0,0,0);
+ if(era==0){pulse*=.9;core.scale.setScalar(1+.12*Math.sin(now/220)+pulse*.5)}
+ else if(ex<27.9){bt+=dt;ex=28*(1-Math.exp(-bt*.9));for(let i=0;i<NP*3;i++)pa[i]=bp[i]*ex;pg0.attributes.position.needsUpdate=true;core.scale.setScalar(1+bt*10);core.material.opacity=Math.max(0,1-bt*1.2);core.visible=core.material.opacity>0}
+ sol.forEach(q=>{q.a+=q.v*dt*.5;q.m.position.set(Math.cos(q.a)*q.r,0,Math.sin(q.a)*q.r)});if(moon&&sol[2]){moon.a+=dt*3;moon.m.position.set(sol[2].m.position.x+Math.cos(moon.a)*.75,0,sol[2].m.position.z+Math.sin(moon.a)*.75)}if(belt)belt.rotation.y+=dt*.08;
+ pul.forEach((n,i)=>n.scale.setScalar(.18*(1+.4*Math.sin(now/90+i))));
+ nv=nv.filter(f=>{f.l--;f.m.scale.multiplyScalar(1.12);f.m.material.opacity=f.l/40*.9;if(f.l<=0){cosmos.remove(f.m);return false}return true});
+ com.forEach(c=>{const r=c.A*(1-c.e*c.e)/(1+c.e*Math.cos(c.a));c.a+=dt*Math.min(2.5,16/(r*r));c.m.position.set(Math.cos(c.a+c.rot)*r,0,Math.sin(c.a+c.rot)*r)});
+ gal.forEach(g=>g.rotation.y+=dt*.25);bh.forEach(b=>b.ring.rotation.z+=dt*2);
+ pls.forEach(p=>{p.a+=p.v*dt;p.m.position.set(p.s.position.x+Math.cos(p.a)*p.r,p.s.position.y,p.s.position.z+Math.sin(p.a)*p.r)});
+ if(dirty&&(view=='e'||(view=='s'&&sol[2]))){paint();dirty=0}
+ if(sol[2]){sol[2].m.rotation.y+=dt*.35;sol[2].m.userData.atm.visible=pe>=4}
+ if(pe>=5&&view=='e'){P.forEach((p,i)=>{const d=dir(p.x,p.y,Math.sin(now/300+p.a)*.12);tv.set(d[0],d[1],d[2]);dum.position.copy(tv).multiplyScalar(tR(p.x,p.y)+.002);dum.quaternion.setFromUnitVectors(UP,tv);dum.scale.setScalar(1);dum.updateMatrix();pB.setMatrixAt(i,dum.matrix);pH.setMatrixAt(i,dum.matrix);pB.setColorAt(i,cc.set(p.s?0x8a0000:0xff50a8))});pB.count=pH.count=P.length;pB.instanceMatrix.needsUpdate=pH.instanceMatrix.needsUpdate=true;if(pB.instanceColor)pB.instanceColor.needsUpdate=true;
+ B.forEach((b,i)=>{const d=dir(b.x,b.y),t=b.t?1:0,r=tR(b.x,b.y)-.004;tv.set(d[0],d[1],d[2]);qn.setFromUnitVectors(UP,tv);qy.setFromAxisAngle(UP,b.x*1.7);dum.quaternion.copy(qn).multiply(qy);dum.position.copy(tv).multiplyScalar(r);dum.scale.set(t?1.1:1,t?2.4:1,t?1.1:1);dum.updateMatrix();bW.setMatrixAt(i,dum.matrix);bW.setColorAt(i,cc.set(t?0xf2e3b0:0xd9b88a));dum.position.copy(tv).multiplyScalar(r+(t?.096:.04));dum.scale.set(t?1.2:1,t?1.8:1,t?1.2:1);dum.updateMatrix();bR.setMatrixAt(i,dum.matrix);bR.setColorAt(i,cc.set(t?0xffcf4a:0xa8442a))});bW.count=bR.count=B.length;bW.instanceMatrix.needsUpdate=bR.instanceMatrix.needsUpdate=true;if(bW.instanceColor)bW.instanceColor.needsUpdate=bR.instanceColor.needsUpdate=true;devM.position.set(Math.cos(now/2500)*1.6,Math.sin(now/1700)*.5,Math.sin(now/2500)*1.6);if(over==1)devM.scale.setScalar(Math.min(.9,devM.scale.x*1.015));}
+ fx=fx.filter(f=>{f.l--;f.m.scale.multiplyScalar(1.03);f.m.material.opacity=f.l/30*.7;if(f.l<=0){S.remove(f.m);f.m.material.dispose();return false}return true});
+ R.render(S,cam);requestAnimationFrame(frame)}
+$('rs').onclick=()=>location.reload();
+const q4l=()=>{$('q4').textContent='Grafika: '+['standard','2K','4K'][q4]+' ('+el.width+'×'+el.height+' px)'};
+$('q4').onclick=()=>{q4=(q4+1)%3;fit();q4l()};
+addEventListener('resize',()=>{fit();q4l()});
+$('tabs').innerHTML=[['c','Wszechświat'],['s','Układ Słoneczny'],['e','Ziemia']].map(a=>'<button data-v="'+a[0]+'" data-n="'+a[1]+'">'+a[1]+'</button>').join('');
+$('tabs').querySelectorAll('button').forEach(e=>e.onclick=()=>setView(e.dataset.v));
+fit();q4l();genPlanet();vis();say(ERA[0][1]);ui();setInterval(tick,450);requestAnimationFrame(frame);
+</script>
+</body>
+</html>
